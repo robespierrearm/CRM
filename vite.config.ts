@@ -7,9 +7,9 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: '/CRM/',
+  base: command === 'build' ? '/CRM/' : '/',
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
@@ -24,4 +24,4 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
   },
-})
+}))

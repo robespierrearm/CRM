@@ -35,8 +35,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const App: React.FC = () => {
+  // Динамически определяем basename в зависимости от окружения
+  const basename = import.meta.env.PROD ? '/CRM' : '';
+  
   return (
-    <BrowserRouter basename="/CRM">
+    <BrowserRouter basename={basename}>
       <AuthProvider>
         <DataProvider>
           <TooltipProvider>
