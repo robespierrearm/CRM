@@ -30,7 +30,7 @@ if grep -q "src=/src/main.tsx" dist/index.html; then
     exit 1
 fi
 
-if grep -q "/CRM/assets/" dist/index.html; then
+if grep -q "./assets/" dist/index.html; then
     echo "✅ dist/index.html содержит правильные ссылки"
 else
     echo "❌ ОШИБКА: dist/index.html не содержит правильных ссылок!"
@@ -40,7 +40,7 @@ fi
 # Деплоим
 echo ""
 echo "🚀 Деплой на GitHub Pages..."
-npx gh-pages -d dist --dotfiles --remove '**/*'
+npx gh-pages -d dist -t -r https://github.com/robespierrearm/CRM.git
 
 echo ""
 echo "✅ Деплой завершен!"

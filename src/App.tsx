@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { TooltipProvider } from './components/ui/tooltip';
@@ -35,22 +35,15 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const App: React.FC = () => {
-  // Определяем, используем ли мы GitHub Pages
-  const isGitHubPages = window.location.hostname.includes('github.io');
-  
   console.log('CRM App Starting:', {
     hostname: window.location.hostname,
     pathname: window.location.pathname,
-    isGitHubPages: isGitHubPages,
     timestamp: new Date().toISOString()
   });
   
-  // Используем HashRouter для GitHub Pages, BrowserRouter для локальной разработки
-  const Router = isGitHubPages ? HashRouter : BrowserRouter;
-  const basename = isGitHubPages && !Router.name.includes('Hash') ? '/CRM' : '';
-  
+  // Используем HashRouter - надежно работает везде без серверной конфигурации
   return (
-    <Router basename={basename}>
+    <HashRouter>
       <AuthProvider>
         <DataProvider>
           <TooltipProvider>
@@ -150,7 +143,7 @@ const App: React.FC = () => {
           </TooltipProvider>
         </DataProvider>
       </AuthProvider>
-    </Router>
+    </HashRouter>
   );
 };
 
