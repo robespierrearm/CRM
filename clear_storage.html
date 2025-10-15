@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Очистка данных</title>
+</head>
+<body>
+    <h1>Очистка localStorage</h1>
+    <button onclick="clearStorage()">Очистить данные</button>
+    <div id="result"></div>
+    <script>
+        function clearStorage() {
+            localStorage.clear();
+            document.getElementById('result').innerHTML = '<p style="color: green;">✅ Данные очищены! Теперь можете закрыть эту вкладку и обновить страницу CRM.</p>';
+        }
+    </script>
+</body>
+</html>
