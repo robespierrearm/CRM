@@ -36,7 +36,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const App: React.FC = () => {
   // Динамически определяем basename в зависимости от окружения
-  const basename = import.meta.env.PROD ? '/CRM' : '';
+  // Проверяем, находимся ли мы на GitHub Pages
+  const isGitHubPages = window.location.hostname === 'robespierrearm.github.io' || 
+                        window.location.pathname.startsWith('/CRM');
+  const basename = isGitHubPages ? '/CRM' : '';
+  
+  // Отладочная информация для продакшена
+  console.log('App Debug Info:', {
+    hostname: window.location.hostname,
+    pathname: window.location.pathname,
+    isGitHubPages,
+    basename,
+    env: import.meta.env.MODE
+  });
   
   return (
     <BrowserRouter basename={basename}>

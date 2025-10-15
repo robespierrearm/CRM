@@ -43,15 +43,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
+    console.log('AuthContext: Initializing...');
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        console.log('AuthContext: Found stored user:', parsedUser);
+        setUser(parsedUser);
       } catch (error) {
         console.error('Failed to parse stored user:', error);
         localStorage.removeItem('currentUser');
       }
     }
+    console.log('AuthContext: Initialization complete');
     setIsLoading(false);
   }, []);
 
