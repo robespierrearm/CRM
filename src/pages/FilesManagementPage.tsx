@@ -79,7 +79,7 @@ export const FilesManagementPage: React.FC = () => {
     }
   };
 
-  const getFileIcon = (fileType: string) => {
+  const getFileIcon = (_fileType: string) => {
     return <FileText className="h-5 w-5" />;
   };
 
