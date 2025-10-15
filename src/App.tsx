@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { TooltipProvider } from './components/ui/tooltip';
@@ -35,23 +35,22 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const App: React.FC = () => {
-  // Динамически определяем basename в зависимости от окружения
-  // Проверяем, находимся ли мы на GitHub Pages
-  const isGitHubPages = window.location.hostname === 'robespierrearm.github.io' || 
-                        window.location.pathname.startsWith('/CRM');
-  const basename = isGitHubPages ? '/CRM' : '';
+  // Определяем, используем ли мы GitHub Pages
+  const isGitHubPages = window.location.hostname.includes('github.io');
   
-  // Отладочная информация для продакшена
-  console.log('App Debug Info:', {
+  console.log('CRM App Starting:', {
     hostname: window.location.hostname,
     pathname: window.location.pathname,
-    isGitHubPages,
-    basename,
-    env: import.meta.env.MODE
+    isGitHubPages: isGitHubPages,
+    timestamp: new Date().toISOString()
   });
   
+  // Используем HashRouter для GitHub Pages, BrowserRouter для локальной разработки
+  const Router = isGitHubPages ? HashRouter : BrowserRouter;
+  const basename = isGitHubPages && !Router.name.includes('Hash') ? '/CRM' : '';
+  
   return (
-    <BrowserRouter basename={basename}>
+    <Router basename={basename}>
       <AuthProvider>
         <DataProvider>
           <TooltipProvider>
@@ -151,7 +150,7 @@ const App: React.FC = () => {
           </TooltipProvider>
         </DataProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </Router>
   );
 };
 
