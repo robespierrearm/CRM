@@ -22,13 +22,14 @@ export const AddTenderDialog: React.FC<AddTenderDialogProps> = ({ open, onOpenCh
   const { addTender } = useData();
   
   const [formData, setFormData] = useState<Partial<Tender>>({
-    name: '',
-    url: '',
+    title: '',
+    link: '',
     status: 'Новый',
-    publicationDate: new Date().toISOString().split('T')[0],
-    submissionDeadline: '',
-    initialPrice: undefined,
-    contractSecurityPercent: undefined,
+    publish_date: new Date().toISOString().split('T')[0],
+    deadline: '',
+    amount: null,
+    contract_guarantee_percent: null,
+    is_archived: false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -37,32 +38,33 @@ export const AddTenderDialog: React.FC<AddTenderDialogProps> = ({ open, onOpenCh
     const tenderData = { ...formData };
 
     // Валидация
-    if (!tenderData.name || !tenderData.url) {
+    if (!tenderData.title || !tenderData.link) {
       alert('Пожалуйста, заполните название и ссылку');
       return;
     }
 
     // Добавляем тендер
     addTender({
-      id: Date.now().toString(),
-      name: tenderData.name,
-      url: tenderData.url,
+      title: tenderData.title,
+      link: tenderData.link,
       status: 'Новый',
-      publicationDate: tenderData.publicationDate || new Date().toISOString().split('T')[0],
-      submissionDeadline: tenderData.submissionDeadline || '',
-      initialPrice: tenderData.initialPrice || 0,
-      contractSecurityPercent: tenderData.contractSecurityPercent || 0,
-    } as Tender);
+      publish_date: tenderData.publish_date || new Date().toISOString().split('T')[0],
+      deadline: tenderData.deadline || null,
+      amount: tenderData.amount || null,
+      contract_guarantee_percent: tenderData.contract_guarantee_percent || null,
+      is_archived: false,
+    } as Omit<Tender, 'id' | 'user_id' | 'created_at' | 'updated_at'>);
 
     // Сбрасываем форму
     setFormData({
-      name: '',
-      url: '',
+      title: '',
+      link: '',
       status: 'Новый',
-      publicationDate: new Date().toISOString().split('T')[0],
-      submissionDeadline: '',
-      initialPrice: undefined,
-      contractSecurityPercent: undefined,
+      publish_date: new Date().toISOString().split('T')[0],
+      deadline: '',
+      amount: null,
+      contract_guarantee_percent: null,
+      is_archived: false,
     });
 
     onOpenChange(false);
@@ -71,13 +73,14 @@ export const AddTenderDialog: React.FC<AddTenderDialogProps> = ({ open, onOpenCh
   const handleClose = () => {
     // Сбрасываем форму при закрытии
     setFormData({
-      name: '',
-      url: '',
+      title: '',
+      link: '',
       status: 'Новый',
-      publicationDate: new Date().toISOString().split('T')[0],
-      submissionDeadline: '',
-      initialPrice: undefined,
-      contractSecurityPercent: undefined,
+      publish_date: new Date().toISOString().split('T')[0],
+      deadline: '',
+      amount: null,
+      contract_guarantee_percent: null,
+      is_archived: false,
     });
     onOpenChange(false);
   };
@@ -95,23 +98,23 @@ export const AddTenderDialog: React.FC<AddTenderDialogProps> = ({ open, onOpenCh
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Название тендера *</Label>
+              <Label htmlFor="title">Название тендера *</Label>
               <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                id="title"
+                value={formData.title || ''}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="Введите название тендера"
                 required
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="url">Ссылка на тендер *</Label>
+              <Label htmlFor="link">Ссылка на тендер *</Label>
               <Input
-                id="url"
+                id="link"
                 type="url"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                value={formData.link || ''}
+                onChange={(e) => setFormData({ ...formData, link: e.target.value })}
                 placeholder="https://..."
                 required
               />
@@ -119,25 +122,25 @@ export const AddTenderDialog: React.FC<AddTenderDialogProps> = ({ open, onOpenCh
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="publicationDate">Дата публикации</Label>
+                <Label htmlFor="publish_date">Дата публикации</Label>
                 <Input
-                  id="publicationDate"
+                  id="publish_date"
                   type="date"
-                  value={formData.publicationDate}
+                  value={formData.publish_date || ''}
                   onChange={(e) =>
-                    setFormData({ ...formData, publicationDate: e.target.value })
+                    setFormData({ ...formData, publish_date: e.target.value })
                   }
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="submissionDeadline">Дедлайн подачи</Label>
+                <Label htmlFor="deadline">Дедлайн подачи</Label>
                 <Input
-                  id="submissionDeadline"
+                  id="deadline"
                   type="date"
-                  value={formData.submissionDeadline}
+                  value={formData.deadline || ''}
                   onChange={(e) =>
-                    setFormData({ ...formData, submissionDeadline: e.target.value })
+                    setFormData({ ...formData, deadline: e.target.value })
                   }
                 />
               </div>
@@ -145,15 +148,15 @@ export const AddTenderDialog: React.FC<AddTenderDialogProps> = ({ open, onOpenCh
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="initialPrice">Начальная цена (₽)</Label>
+                <Label htmlFor="amount">Начальная цена (₽)</Label>
                 <Input
-                  id="initialPrice"
+                  id="amount"
                   type="number"
-                  value={formData.initialPrice ?? ''}
+                  value={formData.amount ?? ''}
                   onChange={(e) =>
                     setFormData({ 
                       ...formData, 
-                      initialPrice: e.target.value ? parseFloat(e.target.value) : undefined 
+                      amount: e.target.value ? parseFloat(e.target.value) : null 
                     })
                   }
                   placeholder="Введите начальную цену"
@@ -161,15 +164,15 @@ export const AddTenderDialog: React.FC<AddTenderDialogProps> = ({ open, onOpenCh
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="contractSecurity">Обеспечение контракта (%)</Label>
+                <Label htmlFor="contract_guarantee_percent">Обеспечение контракта (%)</Label>
                 <Input
-                  id="contractSecurity"
+                  id="contract_guarantee_percent"
                   type="number"
-                  value={formData.contractSecurityPercent ?? ''}
+                  value={formData.contract_guarantee_percent ?? ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      contractSecurityPercent: e.target.value ? parseFloat(e.target.value) : undefined,
+                      contract_guarantee_percent: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
                   placeholder="Введите процент обеспечения"
