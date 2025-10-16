@@ -96,21 +96,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setError(null);
 
-    try {
-      await Promise.all([
-        loadTenders(),
-        loadSuppliers(),
-        loadExpenses(),
-        loadCompanyInfo(),
-        loadDownloadableFiles(),
-      ]);
-      console.log('DataContext: All data loaded successfully');
-    } catch (err) {
-      console.error('DataContext: Error loading data:', err);
-      setError('Ошибка загрузки данных');
-    } finally {
-      setIsLoading(false);
-    }
+    // Загружаем данные независимо - если одна таблица не существует, остальные все равно загрузятся
+    await Promise.allSettled([
+      loadTenders(),
+      loadSuppliers(),
+      loadExpenses(),
+      loadCompanyInfo(),
+      loadDownloadableFiles(),
+    ]);
+    
+    console.log('DataContext: All data loaded');
+    setIsLoading(false);
   };
 
   // ========== TENDERS ==========
@@ -134,11 +130,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Конвертируем UI формат в БД формат
     const dbTender = tenderToDb(tender);
     
+    // Убеждаемся, что обязательные поля заполнены
+    if (!dbTender.title) {
+      throw new Error('Title is required');
+    }
+    
     const { data, error } = await supabase
       .from('tenders')
       .insert([{
         ...dbTender,
         user_id: user?.id,
+        title: dbTender.title, // Явно указываем обязательное поле
       }])
       .select()
       .single();
@@ -194,17 +196,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ========== SUPPLIERS ==========
   const loadSuppliers = async () => {
-    const { data, error } = await supabase
-      .from('suppliers')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error loading suppliers:', error);
-      throw error;
+      if (error) {
+        // Если таблица не существует, просто пропускаем
+        if (error.code === 'PGRST205') {
+          console.warn('Suppliers table does not exist yet, skipping...');
+          setSuppliers([]);
+          return;
+        }
+        console.error('Error loading suppliers:', error);
+        throw error;
+      }
+
+      setSuppliers(data || []);
+    } catch (err) {
+      console.warn('Failed to load suppliers, using empty array:', err);
+      setSuppliers([]);
     }
-
-    setSuppliers(data || []);
   };
 
   const addSupplier = async (supplier: Omit<Supplier, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
@@ -261,17 +274,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ========== EXPENSES ==========
   const loadExpenses = async () => {
-    const { data, error } = await supabase
-      .from('expenses')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error loading expenses:', error);
-      throw error;
+      if (error) {
+        // Если таблица не существует, просто пропускаем
+        if (error.code === 'PGRST205') {
+          console.warn('Expenses table does not exist yet, skipping...');
+          setExpenses([]);
+          return;
+        }
+        console.error('Error loading expenses:', error);
+        throw error;
+      }
+
+      setExpenses(data || []);
+    } catch (err) {
+      console.warn('Failed to load expenses, using empty array:', err);
+      setExpenses([]);
     }
-
-    setExpenses(data || []);
   };
 
   const getExpensesByTenderId = (tenderId: string): Expense[] => {
@@ -358,6 +382,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('companyInfo');
     if (saved) {
       setCompanyInfo(JSON.parse(saved));
+    } else {
+      // Устанавливаем значения по умолчанию
+      const defaultCompanyInfo: CompanyInfo = {
+        name: 'Моя компания',
+        inn: '',
+        kpp: '',
+        ogrn: '',
+        address: '',
+        phone: '',
+        email: '',
+        directorName: '',
+        bankName: '',
+        bik: '',
+        checkingAccount: '',
+        correspondentAccount: '',
+      };
+      setCompanyInfo(defaultCompanyInfo);
     }
     // TODO: Загрузить из Supabase
   };

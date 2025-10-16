@@ -7,11 +7,12 @@ import { formatDateTime } from '../lib/utils';
 import { AddTenderDialog } from '../components/AddTenderDialog';
 
 export const DashboardPage: React.FC = () => {
-  const { reminders, companyInfo, tenders, downloadableFiles } = useData();
+  const { reminders, companyInfo, tenders, downloadableFiles, isLoading } = useData();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isAddTenderDialogOpen, setIsAddTenderDialogOpen] = useState(false);
 
+  // useEffect должен быть вызван до любых условных return
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -19,9 +20,32 @@ export const DashboardPage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Показываем загрузку пока данные не загружены
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Загрузка данных...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Если companyInfo еще null, показываем заглушку
+  if (!companyInfo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Загрузка информации о компании...</p>
+        </div>
+      </div>
+    );
+  }
+
   const upcomingReminders = reminders
-    .filter((r) => !r.completed && new Date(r.dateTime) > new Date())
-    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+    .filter((r) => !r.is_completed && new Date(r.reminder_date) > new Date())
+    .sort((a, b) => new Date(a.reminder_date).getTime() - new Date(b.reminder_date).getTime())
     .slice(0, 5);
 
   const activeSubmissions = tenders.filter((t) => t.status === 'Новый');
@@ -404,7 +428,7 @@ export const DashboardPage: React.FC = () => {
             ) : (
               <div className="space-y-2">
                 {upcomingReminders.map((reminder) => {
-                  const tender = tenders.find((t) => t.id === reminder.tenderId);
+                  const tender = tenders.find((t) => t.id === reminder.tender_id);
                   return (
                     <div
                       key={reminder.id}
@@ -414,10 +438,10 @@ export const DashboardPage: React.FC = () => {
                         <Clock className="h-4 w-4 text-orange-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">{tender?.name || 'Тендер'}</p>
+                        <p className="font-semibold text-gray-900 truncate">{tender?.title || 'Тендер'}</p>
                         <p className="text-sm text-gray-600 mt-0.5">{reminder.description}</p>
                         <p className="text-xs text-orange-600 font-medium mt-1">
-                          {formatDateTime(reminder.dateTime)}
+                          {formatDateTime(reminder.reminder_date)}
                         </p>
                       </div>
                     </div>

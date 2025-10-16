@@ -8,20 +8,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { LogIn } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    if (login(username, password)) {
-      navigate('/dashboard');
-    } else {
-      setError('Неверный логин или пароль');
+    try {
+      const success = await login(email, password);
+      if (success) {
+        navigate('/dashboard');
+      } else {
+        setError('Неверный email или пароль');
+      }
+    } catch (err) {
+      setError('Ошибка входа в систему');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -42,13 +51,13 @@ export const LoginPage: React.FC = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Логин</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Введите логин"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Введите email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -66,18 +75,21 @@ export const LoginPage: React.FC = () => {
             {error && (
               <div className="text-sm text-red-500 text-center">{error}</div>
             )}
-            <Button type="submit" className="w-full">
-              Войти
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Вход...' : 'Войти'}
             </Button>
             <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-xs text-center text-blue-800 font-medium mb-1">
-                Данные для входа:
+                Данные для входа (Supabase):
               </p>
               <p className="text-sm text-center text-blue-900 font-semibold">
                 admin@crm.ru
               </p>
               <p className="text-sm text-center text-blue-900 font-semibold">
                 admin123
+              </p>
+              <p className="text-xs text-center text-blue-600 mt-1">
+                Создайте пользователя в Supabase Dashboard
               </p>
             </div>
           </form>
