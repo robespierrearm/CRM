@@ -1,16 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../integrations/supabase/client';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => boolean;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, fullName?: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
-  users: User[];
-  addUser: (user: Omit<User, 'id'>) => void;
-  updateUser: (id: string, user: Partial<User>) => void;
-  deleteUser: (id: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,104 +22,125 @@ export const useAuth = () => {
   return context;
 };
 
+// Конвертация Supabase User в наш User тип
+const convertSupabaseUser = (supabaseUser: SupabaseUser): User => ({
+  id: supabaseUser.id,
+  email: supabaseUser.email!,
+  user_metadata: supabaseUser.user_metadata,
+  created_at: supabaseUser.created_at,
+});
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem('users');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    // Создаем дефолтного администратора
-    const defaultUser: User = {
-      id: '1',
-      username: 'admin@crm.ru',
-      password: 'admin123',
-      role: 'admin',
-    };
-    localStorage.setItem('users', JSON.stringify([defaultUser]));
-    return [defaultUser];
-  });
 
   useEffect(() => {
-    console.log('AuthContext: Initializing...');
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        console.log('AuthContext: Found stored user:', parsedUser);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('currentUser');
+    console.log('AuthContext: Initializing with Supabase Auth...');
+    
+    // Проверяем текущую сессию
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        console.log('AuthContext: Found active session:', session.user.email);
+        setUser(convertSupabaseUser(session.user));
       }
-    }
-    console.log('AuthContext: Initialization complete');
-    setIsLoading(false);
+      setIsLoading(false);
+    });
+
+    // Подписываемся на изменения авторизации
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('AuthContext: Auth state changed:', _event);
+      if (session?.user) {
+        setUser(convertSupabaseUser(session.user));
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('users', JSON.stringify(users));
-  }, [users]);
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      console.log('AuthContext: Attempting login for:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-  const login = (username: string, password: string): boolean => {
-    const foundUser = users.find(
-      (u: User) => u.username === username && u.password === password
-    );
+      if (error) {
+        console.error('Login error:', error.message);
+        return false;
+      }
 
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('currentUser', JSON.stringify(foundUser));
-      return true;
-    }
+      if (data.user) {
+        console.log('AuthContext: Login successful');
+        setUser(convertSupabaseUser(data.user));
+        return true;
+      }
 
-    return false;
-  };
-
-  const addUser = (userData: Omit<User, 'id'>) => {
-    const newUser: User = {
-      ...userData,
-      id: Date.now().toString(),
-    };
-    setUsers([...users, newUser]);
-  };
-
-  const updateUser = (id: string, userData: Partial<User>) => {
-    setUsers(users.map(u => u.id === id ? { ...u, ...userData } : u));
-    // Обновляем текущего пользователя если он редактируется
-    if (user?.id === id) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      return false;
+    } catch (error) {
+      console.error('Login exception:', error);
+      return false;
     }
   };
 
-  const deleteUser = (id: string) => {
-    // Нельзя удалить самого себя
-    if (user?.id === id) {
-      alert('Нельзя удалить текущего пользователя');
-      return;
+  const signup = async (email: string, password: string, fullName?: string): Promise<boolean> => {
+    try {
+      console.log('AuthContext: Attempting signup for:', email);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: 'user', // По умолчанию роль user
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Signup error:', error.message);
+        return false;
+      }
+
+      if (data.user) {
+        console.log('AuthContext: Signup successful');
+        // Не устанавливаем user здесь, т.к. может потребоваться подтверждение email
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Signup exception:', error);
+      return false;
     }
-    setUsers(users.filter(u => u.id !== id));
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
+  const logout = async (): Promise<void> => {
+    try {
+      console.log('AuthContext: Logging out');
+      await supabase.auth.signOut();
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
-      isAuthenticated: !!user, 
-      isLoading,
-      users,
-      addUser,
-      updateUser,
-      deleteUser,
-    }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        login, 
+        signup,
+        logout, 
+        isAuthenticated: !!user, 
+        isLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

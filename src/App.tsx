@@ -1,8 +1,19 @@
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { TooltipProvider } from './components/ui/tooltip';
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TendersPage } from './pages/TendersPage';
@@ -43,10 +54,11 @@ const App: React.FC = () => {
   
   // Используем HashRouter - надежно работает везде без серверной конфигурации
   return (
-    <HashRouter>
-      <AuthProvider>
-        <DataProvider>
-          <TooltipProvider>
+    <QueryClientProvider client={queryClient}>
+      <HashRouter>
+        <AuthProvider>
+          <DataProvider>
+            <TooltipProvider>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route
@@ -144,6 +156,7 @@ const App: React.FC = () => {
         </DataProvider>
       </AuthProvider>
     </HashRouter>
+    </QueryClientProvider>
   );
 };
 
